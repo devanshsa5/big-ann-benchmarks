@@ -1,3 +1,13 @@
+any:
+    faiss-ivf:
+      docker-tag: billion-scale-benchmark-faissconda
+      module: benchmark.algorithms.faiss_inmem
+      constructor: FaissIVF
+      base-args: ["@metric"]
+      run-groups:
+        base:
+          args: [[1024,2048,4096,8192]]
+          query-args: [[1, 5, 10, 50, 100, 200]]
 random-range-xs:
     kota-t2:
       docker-tag: billion-scale-benchmark-kota
@@ -303,20 +313,26 @@ random-xs:
     couchbase_t1:
       docker-tag: billion-scale-benchmark-couchbase
       module: benchmark.algorithms.couchbase_t1
-      constructor: CouchbaseGSIClient
+      constructor: Couchbase
       base-args: ["@metric"]
       run-groups:
         base:
           args: |
-              [{"host": "ec2-184-72-179-252.compute-1.amazonaws.com",
-                "username": "Administrator",
-                "password": "password",
-                "scope": "scope-1",
-                "collection": "collection-1"
+              [{"host": "172.23.",
+                "url": "https://gips-test-bucket-0-gz.gz.bcebos.com/similar/bigann-1B.puckindex"
                 }]
           query-args: |
                [
-                "100"
+                 "10,30,11000,100", 
+                 "10,30,12000,100",
+                 "10,20,13000,200",
+                 "10,30,13000,200",
+                 "10,30,14000,200",
+                 "10,30,15000,100",
+                 "10,30,19000,200",
+                 "10,30,20000,300",
+                 "10,90,200000,1400",
+                 "10,100,230000,1300"
                ]
 
 deep-10M:

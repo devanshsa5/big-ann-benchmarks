@@ -36,29 +36,29 @@ class StreamingRunner(BaseRunner):
         num_searches = 0
         for step, entry in enumerate(runbook):
             start_time = time.time()
-            match entry['operation']:
-                case 'insert':
-                    start = entry['start']
-                    end = entry['end']
-                    ids = np.arange(start, end, dtype=np.uint32)
-                    algo.insert(ds.get_data_in_range(start, end), ids)
-                case 'delete':
-                    ids = np.arange(entry['start'], entry['end'], dtype=np.uint32)
-                    algo.delete(ids)
-                case 'search':
-                    if search_type == 'knn':
-                        algo.query(Q, count)
-                        results = algo.get_results()
-                    elif search_type == 'range':
-                        algo.range_query(Q, count)
-                        results = algo.get_range_results()
-                    else:
-                        raise NotImplementedError(f"Search type {search_type} not available.")
-                    all_results.append(results)
-                    result_map[num_searches] = step + 1
-                    num_searches += 1
-                case _:
-                    raise NotImplementedError('Invalid runbook operation.')
+            if entry['operation'] == 'insert':
+                start = entry['start']
+                end = entry['end']
+                ids = np.arange(start, end, dtype=np.uint32)
+                algo.insert(ds.get_data_in_range(start, end), ids)
+            elif entry['operation'] == 'delete':
+                ids = np.arange(entry['start'], entry['end'], dtype=np.uint32)
+                algo.delete(ids)
+            elif entry['operation'] == 'search':
+                if search_type == 'knn':
+                    algo.query(Q, count)
+                    results = algo.get_results()
+                elif search_type == 'range':
+                    algo.range_query(Q, count)
+                    results = algo.get_range_results()
+                else:
+                    raise NotImplementedError(f"Search type {search_type} not available.")
+                all_results.append(results)
+                result_map[num_searches] = step + 1
+                num_searches += 1
+            else:
+                raise NotImplementedError('Invalid runbook operation.')
+
             step_time = (time.time() - start_time)
             print(f"Step {step+1} took {step_time}s.")
 
