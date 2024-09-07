@@ -308,7 +308,7 @@ random-xs:
       run-groups:
         base:
           args: |
-              [{"host": "ec2-184-72-179-252.compute-1.amazonaws.com",
+              [{"host": "ec2-54-86-161-77.compute-1.amazonaws.com",
                 "username": "Administrator",
                 "password": "password",
                 "scope": "scope-1",

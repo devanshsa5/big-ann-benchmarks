@@ -1,4 +1,5 @@
 from datetime import timedelta
+from time import sleep
 
 from benchmark.algorithms.base import BaseANN
 from benchmark.datasets import DATASETS, download_accelerated
@@ -79,9 +80,21 @@ class CouchbaseGSIClient(BaseANN):
     def track(self):
         return "T1"
 
-    def fit(self, dataset):
-        print("Fitting")
+    def wait_for_index(self):
+        index_manager = self._get_cluster().query_indexes()
+        while True:
+            indexes = index_manager.get_all_indexes(self.bucket)
+            if len(indexes):
+                state = indexes[0].state
+                print(f"Index {state=}")
+                if state == "online":
+                    break
+            sleep(10)
+        sleep(300)  # extra 5min sleep
+        print("Index created")
 
+    def fit(self, dataset):
+        print(f"Creating index {self.index_name}")
         create_index_query = self._get_create_index_statement()
         cluster = self._get_cluster()
         try:
@@ -92,6 +105,9 @@ class CouchbaseGSIClient(BaseANN):
         except CouchbaseException as e:
             print(e)
             # Possibly a timeout, just continue and wait for the index to be ready
+        print(f"Waiting for index {self.index_name}")
+        self.wait_for_index()
+
 
     def load_index(self, dataset):
         return True
