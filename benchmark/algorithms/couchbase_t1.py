@@ -21,7 +21,7 @@ class CouchbaseGSIClient(BaseANN):
     def __init__(self, metric, index_params) -> None:
         self._index_params = index_params
         self.services = [ServiceType.KeyValue, ServiceType.Query]
-        if metric == "cosine":
+        if metric in ("ip" or "angular"):
             metric = "COSINE"
         else:
             metric = "L2"
@@ -51,7 +51,7 @@ class CouchbaseGSIClient(BaseANN):
 
         self.connection_string = f"{cb_proto}{host}{params}"
         self.bucket = index_params.get("bucket", "bucket-1")
-        self.index_name = f"{self.bucket}_vector_index2"
+        self.index_name = index_params.get("index_name",f"{self.bucket}_vector_index")
         self.index_type = index_params.get("index_type", "CVI")
         self.scope = index_params.get("scope", None)
         self.collection = index_params.get("collection", None)
@@ -71,10 +71,6 @@ class CouchbaseGSIClient(BaseANN):
         return cluster
 
     def done(self):
-        """
-        This is called after results have been processed.
-        Use it for cleaning up if necessary.
-        """
         pass
 
     def track(self):
@@ -139,7 +135,7 @@ class CouchbaseGSIClient(BaseANN):
             rows = [0]
             options = QueryOptions(timeout=timedelta(minutes=5))
             try:
-                select_query = f"SELECT meta().id from `{self.bucket}` ORDER BY ANN(emb, {query}, '{self._metric}', {self.nprobes}) LIMIT {k};"
+                select_query = f"SELECT meta().id from `{self.bucket}` ORDER BY ANN(emb, {query.tolist()}, '{self._metric}', {self.nprobes}) LIMIT {k};"
                 query_result = self._get_cluster().query(select_query, options).execute()
                 rows = [int(row.get("id", 0)) for row in query_result]
             except CouchbaseException as e:
@@ -151,19 +147,10 @@ class CouchbaseGSIClient(BaseANN):
         self.res = np.array(I)
 
     def range_query(self, X, radius):
-        """
-        Carry out a batch query for range search with
-        radius.
-        """
         raise NotImplementedError()
 
 
     def get_results(self):
-        """
-        Helper method to convert query results of k-NN search.
-        If there are nq queries, returns a (nq, k) array of integers
-        representing the indices of the k-NN for each query.
-        """
         return self.res
 
     def get_range_results(self):

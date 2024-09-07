@@ -931,29 +931,26 @@ bigann-1B:
                  "10,90,200000,1400",
                  "10,100,230000,1300"
                ]
+
     couchbase_t1:
+      docker-tag: billion-scale-benchmark-couchbase
       module: benchmark.algorithms.couchbase_t1
-      constructor: Couchbase
+      constructor: CouchbaseGSIClient
       base-args: ["@metric"]
       run-groups:
         base:
           args: |
-              [{"host": "172.23.",
-                "url": "https://gips-test-bucket-0-gz.gz.bcebos.com/similar/bigann-1B.puckindex"
+              [{"host": "ec2-54-86-161-77.compute-1.amazonaws.com",
+                "username": "Administrator",
+                "password": "password",
+                "bucket": "bigann",
+                "index_name" : "bucket-1_vector_index2"
                 }]
           query-args: |
                [
-                 "10,30,11000,100", 
-                 "10,30,12000,100",
-                 "10,20,13000,200",
-                 "10,30,13000,200",
-                 "10,30,14000,200",
-                 "10,30,15000,100",
-                 "10,30,19000,200",
-                 "10,30,20000,300",
-                 "10,90,200000,1400",
-                 "10,100,230000,1300"
+                "10"
                ]
+
     buddy-t1:
       docker-tag: billion-scale-benchmark-faissconda
       module: benchmark.algorithms.buddy_t1
