@@ -945,7 +945,7 @@ bigann-1B:
                 "password": "password",
                 "bucket": "bigann",
                 "index_name" : "bucket-1_vector_index2",
-                "parallel_query_workers": "32"
+                "parallel_query_workers": "10"
                 }]
           query-args: |
                [
