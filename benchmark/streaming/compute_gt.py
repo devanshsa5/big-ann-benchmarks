@@ -9,17 +9,17 @@ def get_range_start_end(entry):
     return np.arange(entry['start'],  entry['end'], dtype=np.uint32)
 
 def get_next_set(ids: np.ndarray, entry):
-    match entry['operation']:
-        case 'insert':
-            range = get_range_start_end(entry)
-            return np.union1d(ids, range)
-        case 'delete':
-            range = get_range_start_end(entry)
-            return np.setdiff1d(ids, range, assume_unique=True)
-        case 'search':
-            return ids
-        case _:       
-            raise ValueError('Undefined entry in runbook')
+    operation = entry['operation']
+    if operation == 'insert':
+        range = get_range_start_end(entry)
+        return np.union1d(ids, range)
+    elif operation == 'delete':
+        range = get_range_start_end(entry)
+        return np.setdiff1d(ids, range, assume_unique=True)
+    elif operation == 'search':
+        return ids
+    else:
+        raise ValueError('Undefined entry in runbook')
         
 def gt_dir(ds, runbook_path):
     runbook_filename = os.path.split(runbook_path)[1]
@@ -89,23 +89,25 @@ def main():
     query_file = ds.qs_fn if args.private_query else ds.qs_fn
     
     common_cmd = args.gt_cmdline_tool + ' --dist_fn ' 
-    match ds.distance():
-        case 'euclidean':
-            common_cmd += 'l2'
-        case 'ip':
-            common_cmd += 'mips'
-        case _:
-            raise RuntimeError('Invalid metric')
+    distance = ds.distance()
+    if distance == 'euclidean':
+        common_cmd += 'l2'
+    elif distance == 'ip':
+        common_cmd += 'mips'
+    else:
+        raise RuntimeError('Invalid metric')
+
     common_cmd += ' --data_type '
-    match ds.dtype:
-        case 'float32':
-            common_cmd += 'float'
-        case 'int8':
-            common_cmd += 'int8'
-        case 'uint8':
-            commond_cmd += 'uint8'
-        case _:
-            raise RuntimeError('Invalid datatype')
+    dtype = ds.dtype
+    if dtype == 'float32':
+        common_cmd += 'float'
+    elif dtype == 'int8':
+        common_cmd += 'int8'
+    elif dtype == 'uint8':
+        common_cmd += 'uint8'
+    else:
+        raise RuntimeError('Invalid datatype')
+        
     common_cmd += ' --K 100'
     common_cmd += ' --query_file ' + os.path.join(ds.basedir, query_file)
 
@@ -117,7 +119,7 @@ def main():
         else:
             ids = get_next_set(ids, entry)
         print(ids)
-        if (entry['operation'] == 'search'):
+        if entry['operation'] == 'search':
             output_gt(ds, ids, step, common_cmd, args.runbook_file)
         step += 1
 

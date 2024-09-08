@@ -5,6 +5,7 @@ from benchmark.algorithms.base import BaseANN
 from benchmark.datasets import DATASETS, download_accelerated
 import numpy as np
 import psutil
+from multiprocessing import Pool
 from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
 from couchbase.diagnostics import ServiceType
@@ -16,6 +17,26 @@ from couchbase.management.search import SearchIndex
 from couchbase.options import (ClusterOptions, QueryOptions,
                                WaitUntilReadyOptions)
 
+def query_worker(args):
+    """Worker function to handle a chunk of queries."""
+    queries_chunk, self, k = args
+    chunk_results = []
+    for query in queries_chunk:
+
+        rows = [0]  # Default row if no result is found
+        options = QueryOptions(timeout=timedelta(minutes=5))
+        try:
+            # Convert NumPy array to list for Couchbase query
+            select_query = f"SELECT meta().id from `{self.bucket}` ORDER BY ANN(emb, {query.tolist()}, '{self._metric}', {self.nprobes}) LIMIT {k};"
+            query_result = self._get_cluster().query(select_query, options).execute()
+            rows = [int(row.get("id", 0)) for row in query_result]
+        except CouchbaseException as e:
+            print(e.message)
+            if isinstance(e.error_context, QueryErrorContext):
+                print(e.error_context.response_body)
+        chunk_results.append(np.array(rows))
+    return chunk_results
+
 class CouchbaseGSIClient(BaseANN):
 
     def __init__(self, metric, index_params) -> None:
@@ -26,7 +47,7 @@ class CouchbaseGSIClient(BaseANN):
         else:
             metric = "L2"
         self._metric = metric
-
+        self.name = "Couchbase"
         self._query_bs = -1
         self.description = index_params.get("description", "IVF,SQ8")
         self.dim = int(index_params.get("dim",128))
@@ -55,6 +76,7 @@ class CouchbaseGSIClient(BaseANN):
         self.index_type = index_params.get("index_type", "CVI")
         self.scope = index_params.get("scope", None)
         self.collection = index_params.get("collection", None)
+        self.parallel_query_workers = int(index_params.get("parallel_query_workers", 0))
         
     def _get_cluster(self):
         """Helper for creating a cluster connection."""
@@ -128,27 +150,30 @@ class CouchbaseGSIClient(BaseANN):
         raise NotImplementedError()
 
     def query(self, X, k):
-        print("queries =: {} {}".format(type(X), X.shape))
-        print(X)
-        I = []
-        for query in X:
-            rows = [0]
-            options = QueryOptions(timeout=timedelta(minutes=5))
-            try:
-                select_query = f"SELECT meta().id from `{self.bucket}` ORDER BY ANN(emb, {query.tolist()}, '{self._metric}', {self.nprobes}) LIMIT {k};"
-                query_result = self._get_cluster().query(select_query, options).execute()
-                rows = [int(row.get("id", 0)) for row in query_result]
-            except CouchbaseException as e:
-                print(e.message)
-                if isinstance(e.error_context, QueryErrorContext):
-                    print(e.error_context.response_body)
+        if self.parallel_query_workers:
+            print("queries =: {} {}".format(type(X), X.shape))
+            print(X)
 
-            I.append(np.array(rows))
+            n_workers = self.parallel_query_workers
+            chunk_size = int(np.ceil(len(X) / n_workers))
+            
+            # Split X (ndarray) into chunks for multiprocessing
+            chunks = [X[i:i + chunk_size] for i in range(0, len(X), chunk_size)]
+
+            worker_args = [(chunk, self, k) for chunk in chunks]
+
+            with Pool(processes=n_workers) as pool:
+                results = pool.map(query_worker, worker_args)
+
+            # Flatten the results and preserve order
+            I = [item for sublist in results for item in sublist]
+        else: 
+            args = (X, self, k)
+            I = query_worker(args=args)
         self.res = np.array(I)
 
     def range_query(self, X, radius):
         raise NotImplementedError()
-
 
     def get_results(self):
         return self.res

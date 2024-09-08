@@ -944,7 +944,8 @@ bigann-1B:
                 "username": "Administrator",
                 "password": "password",
                 "bucket": "bigann",
-                "index_name" : "bucket-1_vector_index2"
+                "index_name" : "bucket-1_vector_index2",
+                "parallel_query_workers": "32"
                 }]
           query-args: |
                [
