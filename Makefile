@@ -8,5 +8,5 @@ all:
 	pyenv install ${PY_VERSION} -s && \
 	pyenv local ${PY_VERSION} && \
 	virtualenv --quiet --python python3.8 ${ENV}
-	${ENV}/bin/pip install -r --quiet requirements_py38.txt
+	${ENV}/bin/pip install --quiet -r  requirements_py38.txt
 
