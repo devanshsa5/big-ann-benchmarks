@@ -7,6 +7,7 @@ all:
 	eval "$$(pyenv init --path)" && \
 	pyenv install ${PY_VERSION} -s && \
 	pyenv local ${PY_VERSION} && \
-	virtualenv --quiet --python python3.8 ${ENV}
+	python -m pip install virtualenv && \
+	virtualenv --quiet --python python3.8.10 ${ENV}
 	${ENV}/bin/pip install --quiet -r  requirements_py38.txt
 
