@@ -72,7 +72,7 @@ class CouchbaseGSIClient(BaseANN):
 
         self.connection_string = f"{cb_proto}{host}{params}"
         self.bucket = index_params.get("bucket", "bucket-1")
-        self.index_name = index_params.get("index_name",f"{self.bucket}_vector_index")
+        self.index_name = "my_vector_index"
         self.index_type = index_params.get("index_type", "CVI")
         self.scope = index_params.get("scope", None)
         self.collection = index_params.get("collection", None)
